@@ -146,17 +146,17 @@
 
 ```mermaid
 flowchart LR
-    A[复杂文档 PDF / DOCX / Markdown] --> B[解析层]
-    B --> C[文本索引层]
-    B --> D[图片资产层]
-    C --> E[文本检索]
-    D --> F[图片 sidecar 索引]
-    E --> G[对话编排层]
+    A["复杂文档 PDF / DOCX / Markdown"] --> B["解析层"]
+    B --> C["文本索引层"]
+    B --> D["图片资产层"]
+    C --> E["文本检索"]
+    D --> F["图片 sidecar 索引"]
+    E --> G["对话编排层"]
     F --> G
-    G --> H[图片 gate + render plan]
-    H --> I[答案生成与图片展示]
-    C --> J[文本离线评测]
-    F --> K[图片离线评测]
+    G --> H["图片 gate + render plan"]
+    H --> I["答案生成与图片展示"]
+    C --> J["文本离线评测"]
+    F --> K["图片离线评测"]
 ```
 
 从系统设计上看，本项目分成两条互相衔接但职责清晰的主线：
@@ -237,21 +237,21 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  A[前端知识库配置 parser_id=naive layout_recognize=VLM] --> B[rag/app/naive.chunk]
-  B --> C[VLMDocParser(binary, file_type)]
-  C --> D[按页渲染页面图]
-  D --> E[VLM 布局识别 输出带 bbox 的 HTML]
-  E --> F[裁图 figures_dict]
-  E --> G[HTML 转 Markdown]
-  F --> H[图题生成 captions_dict]
-  G --> I[naive.py 恢复图片占位符为逻辑图引用]
+  A["前端知识库配置 parser_id=naive layout_recognize=VLM"] --> B["rag/app/naive.chunk"]
+  B --> C["VLMDocParser binary file_type"]
+  C --> D["按页渲染页面图"]
+  D --> E["VLM 布局识别 输出带 bbox 的 HTML"]
+  E --> F["裁图 figures_dict"]
+  E --> G["HTML 转 Markdown"]
+  F --> H["图题生成 captions_dict"]
+  G --> I["naive.py 恢复图片占位符为逻辑图引用"]
   H --> I
-  I --> J[导出 image_assets/<doc>/figures captions manifest]
-  I --> K[build_vlm_sections + build_vlm_section_images]
-  K --> L[merge_vlm_sections_with_images]
-  L --> M[tokenize_chunks_with_images]
-  M --> N[DocumentService 入库]
-  J --> O[可选构建图片 sidecar 索引]
+  I --> J["导出 image_assets doc figures captions manifest"]
+  I --> K["build_vlm_sections + build_vlm_section_images"]
+  K --> L["merge_vlm_sections_with_images"]
+  L --> M["tokenize_chunks_with_images"]
+  M --> N["DocumentService 入库"]
+  J --> O["可选构建图片 sidecar 索引"]
 ```
 
 ### 图片资产导出
@@ -306,21 +306,21 @@ VLM 解析完成后，系统并不会直接把 Markdown 原文整段入库，而
 
 ```mermaid
 flowchart TD
-    A[用户问题] --> B[文本检索 retrieval]
-    B --> C[kbinfos: total / chunks / doc_aggs]
-    C --> D[从文本命中文档中选择图片候选文档]
-    D --> E[retrieve_image_candidates]
-    E --> F[image_candidates]
-    F --> G[evaluate_image_gate]
-    G -->|不通过| H[仅文本回答]
-    G -->|通过| I[plan_answer_and_render]
-    I --> J[LLM planner 工具式选图]
-    J --> K[validate_and_hydrate_plan]
-    K -->|planner失败| L[gate_fallback]
-    K -->|planner成功| M[image_render_plan]
+    A["用户问题"] --> B["文本检索 retrieval"]
+    B --> C["kbinfos total chunks doc_aggs"]
+    C --> D["从文本命中文档中选择图片候选文档"]
+    D --> E["retrieve_image_candidates"]
+    E --> F["image_candidates"]
+    F --> G["evaluate_image_gate"]
+    G -->|不通过| H["仅文本回答"]
+    G -->|通过| I["plan_answer_and_render"]
+    I --> J["LLM planner 工具式选图"]
+    J --> K["validate_and_hydrate_plan"]
+    K -->|planner失败| L["gate_fallback"]
+    K -->|planner成功| M["image_render_plan"]
     L --> M
-    M --> N[把 render plan 注入知识上下文]
-    H --> O[最终 answer + reference]
+    M --> N["把 render plan 注入知识上下文"]
+    H --> O["最终 answer + reference"]
     N --> O
 ```
 
