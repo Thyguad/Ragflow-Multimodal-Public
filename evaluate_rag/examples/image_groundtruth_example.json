@@ -1,0 +1,47 @@
+[
+  {
+    "qid": "image_demo_001",
+    "question": "Show the architecture diagram from the example pipeline document and briefly explain it.",
+    "query_type": "single_image",
+    "question_type": "single_hop",
+    "doc_uid": "example_multimodal_pipeline",
+    "expected_action": "show",
+    "ground_truth_images": [
+      {
+        "doc_uid": "example_multimodal_pipeline",
+        "doc_name": "example_multimodal_pipeline.pdf",
+        "figure_key": "p1_1",
+        "caption": "Figure 1. Multimodal QA pipeline architecture.",
+        "relevance": 2,
+        "role": "primary",
+        "rationale": "This figure is the primary architecture diagram requested by the question."
+      }
+    ],
+    "reference_answer": "Figure 1 shows the main architecture: document parsing produces text chunks and figure assets, then text and image retrieval feed the answer and image display planner.",
+    "evidence": [
+      {
+        "doc_uid": "example_multimodal_pipeline",
+        "figure_key": "p1_1",
+        "caption": "Figure 1. Multimodal QA pipeline architecture.",
+        "page": 1
+      }
+    ]
+  },
+  {
+    "qid": "image_demo_002",
+    "question": "What is the goal of the example pipeline?",
+    "query_type": "text_only",
+    "question_type": "single_hop",
+    "doc_uid": "example_multimodal_pipeline",
+    "expected_action": "hide",
+    "ground_truth_images": [],
+    "reference_answer": "The goal is to answer document questions using text retrieval and to show images only when visual evidence is useful.",
+    "evidence": [
+      {
+        "doc_uid": "example_multimodal_pipeline",
+        "content": "The pipeline combines text retrieval with optional image display planning.",
+        "page": 1
+      }
+    ]
+  }
+]

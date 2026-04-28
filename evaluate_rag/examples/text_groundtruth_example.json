@@ -1,0 +1,30 @@
+[
+  {
+    "qid": "text_demo_001",
+    "question": "What are the main stages of the example multimodal QA pipeline?",
+    "question_type": "single_hop",
+    "ground_truth_evidences": [
+      {
+        "doc_uid": "example_multimodal_pipeline",
+        "content": "The pipeline parses a document, builds text chunks, extracts figure assets, and retrieves both text and image candidates before generating an answer.",
+        "evidence_type": "concept",
+        "page": 1
+      }
+    ],
+    "reference_answer": "The pipeline first parses the document, then builds text chunks and figure assets, retrieves text and image candidates, and finally generates an answer with optional image display."
+  },
+  {
+    "qid": "text_demo_002",
+    "question": "Why does the system use an image display gate?",
+    "question_type": "single_hop",
+    "ground_truth_evidences": [
+      {
+        "doc_uid": "example_multimodal_pipeline",
+        "content": "The image gate decides whether a question needs visual evidence and prevents unrelated figures from being shown in text-only answers.",
+        "evidence_type": "concept",
+        "page": 2
+      }
+    ],
+    "reference_answer": "The image display gate checks whether visual evidence is useful for the current question, so the system can show relevant figures only when they help the answer."
+  }
+]
