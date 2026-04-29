@@ -2,13 +2,13 @@
 
 > RAGFlow 多模态文档问答公开版
 
-> 这是一个基于 RAGFlow 改造的多模态文档问答系统公开版本，重点支持复杂文档解析、图片资产导出、图文联合检索、图片展示决策与离线评测脚本。
+> 这是一个基于 RAGFlow 改造的多模态文档问答系统公开版本，重点支持复杂文档解析、图片资产导出、可选的图文联合检索、图片展示决策与离线评测脚本。
 
 ## 项目名称
 
 本项目名称为 **RAGFlow-Multimodal**。
 
-它不是原版 RAGFlow 的官方发布包，而是在 RAGFlow 应用基础上扩展出的公开研究与工程版本，核心目标是把普通文档问答扩展为“复杂文档解析 + 图文联合检索 + 图片展示决策”的多模态 RAG 系统。
+它不是原版 RAGFlow 的官方发布包，而是在 RAGFlow 应用基础上扩展出的公开研究与工程版本，核心目标是把普通文档问答扩展为“复杂文档解析 + 可选图文联合检索 + 图片展示决策”的多模态 RAG 系统。注意：在线图片召回不是默认开启能力，必须在知识库配置中打开图片检索增强开关。
 
 ## 相对原版 RAGFlow 的改动
 
@@ -19,9 +19,9 @@
 | VLM 文档解析路径 | 为复杂 PDF / DOCX 增加 VLM 页面理解、Markdown 重建、图片裁剪与图题生成链路 | [`deepdoc/parser/vlm_doc_parser.py`](./deepdoc/parser/vlm_doc_parser.py), [`rag/app/naive.py`](./rag/app/naive.py) |
 | 图片资产导出 | 解析后生成 `image_assets/<doc_uid>/figures/*.jpg`、`captions.json`、`manifest.json` | [`rag/app/naive.py`](./rag/app/naive.py), [`rag/image_asset_utils.py`](./rag/image_asset_utils.py) |
 | 图文入库衔接 | 在文档入库时保留文本 chunk 与图片 sidecar 元数据的对应关系 | [`api/db/services/document_service.py`](./api/db/services/document_service.py) |
-| 图片 sidecar 索引 | 基于图片向量和图注向量构建 late-fusion 图片检索索引 | [`rag/image_index.py`](./rag/image_index.py) |
+| 图片 sidecar 索引 | 开启图片检索增强后，基于图片向量和图注向量构建 late-fusion 图片检索索引 | [`rag/image_index.py`](./rag/image_index.py) |
 | 多模态 embedding 接入 | 封装图片 embedding 调用，供图片索引和召回使用 | [`rag/multimodal_embedding_client.py`](./rag/multimodal_embedding_client.py) |
-| 图片候选召回 | 在对话检索后，根据问题和命中文档召回候选图片 | [`api/db/services/dialog_service.py`](./api/db/services/dialog_service.py) |
+| 图片候选召回 | 仅在知识库开启 `enable_multimodal_image_retrieval` 后，对话检索才会根据问题和命中文档召回候选图片 | [`api/db/services/dialog_service.py`](./api/db/services/dialog_service.py) |
 | 图片展示决策 | 增加 image gate 与 render plan，决定 `none / single / compare / gallery` | [`rag/chat_image_planner.py`](./rag/chat_image_planner.py) |
 | 对话引用结构 | 在回答引用中写入 `reference.image_candidates`、`reference.image_gate`、`reference.image_render_plan` | [`api/db/services/dialog_service.py`](./api/db/services/dialog_service.py) |
 | 图片静态服务 | 用轻量 Flask 服务暴露 `/image_assets/<path>`，便于前端展示解析图片 | [`image_server.py`](./image_server.py) |
@@ -35,7 +35,7 @@
 
 - 完整多模态功能代码
 - VLM 文档解析、图片裁剪、图题整理与图片资产导出
-- 图片 sidecar 索引、图片候选召回、gate 与 render plan
+- 可选图片 sidecar 索引、图片候选召回、gate 与 render plan
 - 前端配置入口、聊天引用结构与图片展示相关代码
 - 通用评测脚本和评测方法说明
 
@@ -45,7 +45,7 @@
 - 本地向量索引、图片资产缓存、运行日志
 - API key、私钥、本机路径和个人进度文档
 
-因此，clone 后不能在没有配置的情况下直接跑完整链路。你需要先安装依赖、启动基础服务、配置模型 API key，并上传自己的 PDF / DOCX 文档。系统会在本地重新生成 `image_assets/<doc_uid>/` 下的图片、caption、manifest 和可选图片索引。
+因此，clone 后不能在没有配置的情况下直接跑完整链路。你需要先安装依赖、启动基础服务、配置模型 API key，并上传自己的 PDF / DOCX 文档。系统会在本地重新生成 `image_assets/<doc_uid>/` 下的图片、caption、manifest；如果同时打开图片检索增强开关，还会构建并使用可选图片 sidecar 索引。
 
 ## Quick Start Summary
 
@@ -75,8 +75,8 @@
 围绕这些目标，本项目设计并实现了一套多模态 RAG 系统，核心思路是：
 
 1. 在文档解析阶段引入 VLM，对页面进行视觉理解，提取结构化 Markdown、图像裁剪和图题描述
-2. 在入库阶段同时保留文本 chunk 与图片 sidecar 资产，为后续图文联动检索提供基础
-3. 在问答阶段先做文本检索，再根据问题和命中文档做图片候选召回
+2. 在入库阶段保留文本 chunk 与图片 sidecar 元数据，为后续可选图文联动检索提供基础
+3. 在问答阶段先做文本检索；如果知识库开启了图片检索增强，再根据问题和命中文档做图片候选召回
 4. 在答案生成前增加一个图片 gate + render plan 决策层，判断是否出图、出单图/对比图/图集
 5. 为文本检索与图片召回保留通用评测脚本，用户可以基于自己的数据重新构建离线评测闭环
 
@@ -100,8 +100,8 @@
 本项目的做法是：
 
 - 解析后为每篇文档落盘 `figures/*.jpg`、`captions.json`、`manifest.json`
-- 为图片构建独立 sidecar 索引
-- 在线问答时把图片候选写回 `reference.image_candidates`
+- 打开图片检索增强后，为图片构建独立 sidecar 索引
+- 在线问答时，仅对开启该开关的知识库把图片候选写回 `reference.image_candidates`
 - 再由 gate / planner 决定最终是否展示
 
 ### 3. 什么情况下应该出图
@@ -134,8 +134,8 @@
 | 文档解析 | 支持 `DeepDOC / Plain Text / VLM / VisionParser` 等模式 | [`rag/app/naive.py`](./rag/app/naive.py) |
 | VLM 页面理解 | 按页输出 `markdown_str + figures_dict + captions_dict` | [`deepdoc/parser/vlm_doc_parser.py`](./deepdoc/parser/vlm_doc_parser.py) |
 | 图片资产导出 | 解析后自动写入 `image_assets/<doc>/figures/*.jpg`、`captions.json`、`manifest.json` | [`rag/app/naive.py`](./rag/app/naive.py) |
-| 图文统一入库 | 文本 chunk 与图片 sidecar 同时进入后续索引链路 | [`api/db/services/document_service.py`](./api/db/services/document_service.py) |
-| 图片 sidecar 索引 | 基于图像向量 + 图注向量的 late fusion 检索 | [`rag/image_index.py`](./rag/image_index.py) |
+| 图文统一入库 | 文本 chunk 与图片 sidecar 元数据进入后续链路；图片检索索引需开启增强开关后构建 | [`api/db/services/document_service.py`](./api/db/services/document_service.py) |
+| 图片 sidecar 索引 | 开启图片检索增强后，基于图像向量 + 图注向量的 late fusion 检索 | [`rag/image_index.py`](./rag/image_index.py) |
 | 图片出图决策 | 支持 `none / single / compare / gallery` 四种模式 | [`rag/chat_image_planner.py`](./rag/chat_image_planner.py) |
 | 对话链路集成 | 回写 `reference.image_candidates / image_gate / image_render_plan` | [`api/db/services/dialog_service.py`](./api/db/services/dialog_service.py) |
 | 图片服务 | 静态暴露 `image_assets` 下的图片文件 | [`image_server.py`](./image_server.py) |
@@ -161,8 +161,8 @@ flowchart LR
 
 从系统设计上看，本项目分成两条互相衔接但职责清晰的主线：
 
-- 离线构建链路：文档解析、图片资产导出、文本入库、图片 sidecar 索引、评测集构建
-- 在线问答链路：文本检索、图片候选召回、图片 gate、render plan、答案生成与前端展示
+- 离线构建链路：文档解析、图片资产导出、文本入库、可选图片 sidecar 索引、评测集构建
+- 在线问答链路：文本检索、可选图片候选召回、图片 gate、render plan、答案生成与前端展示
 
 ## 关键创新点
 
@@ -300,7 +300,13 @@ VLM 解析完成后，系统并不会直接把 Markdown 原文整段入库，而
 
 ## 在线问答与图片展示链路设计
 
-在线问答阶段，本项目采用“文本主检索 + 图片 sidecar 补召回 + 决策层”的设计，而不是让图片链路独立取代文本链路。
+在线问答阶段，本项目采用“文本主检索 + 可选图片 sidecar 补召回 + 决策层”的设计，而不是让图片链路独立取代文本链路。
+
+这里有一个容易误解的点：图片召回功能不是默认开启的。代码默认把 `parser_config.enable_multimodal_image_retrieval` 设为 `false`；上传/解析后的图片 sidecar 索引构建、在线对话里的 `retrieve_image_candidates()` 调用，都会先检查这个开关。也就是说：
+
+- `layout_recognize = "VLM"` 主要负责 VLM 解析、图片裁剪、caption/manifest 导出
+- `enable_multimodal_image_retrieval = true` 才会打开图片检索增强，让系统构建/使用图片 sidecar 索引，并在回答引用中返回 `image_candidates / image_gate / image_render_plan`
+- 如果只启用 VLM 解析、不打开图片检索增强，系统仍可走普通文本 RAG 回答，也可能生成 `image_assets/<doc_uid>/` 图片资产，但在线图片召回与出图规划不会执行
 
 ### 在线问答主流程
 
@@ -308,8 +314,10 @@ VLM 解析完成后，系统并不会直接把 Markdown 原文整段入库，而
 flowchart TD
     A["用户问题"] --> B["文本检索 retrieval"]
     B --> C["kbinfos total chunks doc_aggs"]
-    C --> D["从文本命中文档中选择图片候选文档"]
-    D --> E["retrieve_image_candidates"]
+    C --> D["检查知识库是否开启图片检索增强"]
+    D -->|未开启| H["仅文本回答"]
+    D -->|已开启| P["从文本命中文档中选择图片候选文档"]
+    P --> E["retrieve_image_candidates"]
     E --> F["image_candidates"]
     F --> G["evaluate_image_gate"]
     G -->|不通过| H["仅文本回答"]
@@ -343,7 +351,7 @@ flowchart TD
 最终返回给前端时，这个对象会作为 `reference` 的主体。
 
 ### 图片候选召回
-图片检索不是对全库图片做无条件全局搜索，而是先缩小到“文本检索已命中的文档范围”内，再做图片检索。
+图片检索不是对全库图片做无条件全局搜索，也不是默认跟随文本检索自动运行。它只有在知识库开启 `enable_multimodal_image_retrieval` 后才会进入执行路径，并且会先缩小到“文本检索已命中的文档范围”内，再做图片检索。
 
 图片召回的核心设计是：
 
@@ -426,7 +434,7 @@ flowchart TD
 前端当前已经接入以下能力：
 
 - 知识库配置页可选择 `layout_recognize`
-- 可打开 `enable_multimodal_image_retrieval`
+- 可打开 `enable_multimodal_image_retrieval`，这是在线图片召回和出图规划的必要开关
 - 聊天消息中可以读取：
   - `reference.image_candidates`
   - `reference.image_gate`
@@ -524,7 +532,7 @@ export SERVER_IP=http://127.0.0.1:8000
 
 - `RAGFLOW_VLM_API_KEY`：用于 VLM 页面理解和图片/图题提取
 - `RAGFLOW_MD_API_KEY`：用于 Markdown 重建或相关文本生成步骤
-- `RAGFLOW_IMAGE_EMBEDDING_API_KEY`：用于图片 embedding 和图片 sidecar 索引
+- `RAGFLOW_IMAGE_EMBEDDING_API_KEY`：用于图片 embedding 和可选图片 sidecar 索引
 - `SERVER_IP`：聊天回答中生成图片 URL 时使用，默认指向本地 `image_server.py`
 
 如果你使用同一厂商的 OpenAI-compatible 服务，Markdown 模型和图片 embedding 可以复用同一套 key。不同厂商或自建模型需要按实际 SDK / endpoint 修改相应配置。
@@ -580,7 +588,7 @@ bash ./start_frontend.sh
 
 ### 路径 B：完整验证多模态链路
 
-如果你想复现图文联合检索与图片展示决策，推荐按下面步骤：
+如果你想复现图文联合检索与图片展示决策，推荐按下面步骤。特别注意：只设置 VLM 解析还不够，图片召回需要额外打开图片检索增强开关。
 
 1. 创建知识库
 2. 选择 `naive` 解析方式
@@ -622,7 +630,7 @@ bash ./start_frontend.sh
 - [`api/db/services/document_service.py`](./api/db/services/document_service.py)
   - 文档上传、图片对象保存、文本向量化与真正入库
 - [`rag/image_index.py`](./rag/image_index.py)
-  - 图片 sidecar 索引与候选召回
+  - 开启图片检索增强后的图片 sidecar 索引与候选召回
 - [`rag/chat_image_planner.py`](./rag/chat_image_planner.py)
   - 图片 gate 与 render plan
 - [`api/db/services/dialog_service.py`](./api/db/services/dialog_service.py)

@@ -4,7 +4,7 @@ Multimodal Document QA for RAGFlow
 
 This is a public release of a multimodal document question-answering system built on top of RAGFlow.
 
-It focuses on complex document understanding, image asset extraction, text-image retrieval, image display planning, and offline evaluation scripts.
+It focuses on complex document understanding, image asset extraction, optional text-image retrieval, image display planning, and offline evaluation scripts.
 
 For the full Chinese documentation, see [README_zh.md](./README_zh.md).
 
@@ -21,7 +21,7 @@ This release adds the following multimodal components on top of the original RAG
 - **VLM document parsing path**: `deepdoc/parser/vlm_doc_parser.py` and `rag/app/naive.py` add a VLM-based parser path for complex PDF and DOCX documents.
 - **Image asset export**: parsed figures are written to `image_assets/<doc_uid>/` with `figures/*.jpg`, `captions.json`, and `manifest.json`.
 - **Text-image ingestion bridge**: document ingestion keeps text chunks and image sidecar metadata aligned for later retrieval.
-- **Image sidecar index**: `rag/image_index.py` builds and loads image/caption vectors for image candidate retrieval.
+- **Optional image sidecar index**: `rag/image_index.py` builds and loads image/caption vectors for image candidate retrieval when image retrieval enhancement is enabled.
 - **Image retrieval client**: `rag/multimodal_embedding_client.py` provides the image embedding interface used by the sidecar index.
 - **Image display decision layer**: `rag/chat_image_planner.py` adds image gate and render-plan logic, deciding `none`, `single`, `compare`, or `gallery`.
 - **Dialog integration**: `api/db/services/dialog_service.py` writes `reference.image_candidates`, `reference.image_gate`, and `reference.image_render_plan` into chat references.
@@ -33,7 +33,7 @@ This release adds the following multimodal components on top of the original RAG
 - Multimodal document parsing with VLM-assisted page understanding
 - Image asset export to `image_assets/<doc_uid>/`
 - Caption and manifest generation for extracted figures
-- Image sidecar indexing and late-fusion retrieval
+- Optional image sidecar indexing and late-fusion retrieval
 - Image gate and render-plan logic for chat answers
 - Frontend integration for multimodal retrieval settings and image display metadata
 - General evaluation scripts under `evaluate_rag/`
@@ -90,12 +90,20 @@ Then open:
 
 ## Multimodal Usage
 
-To test the full multimodal workflow:
+Image retrieval is not enabled by default. The code defaults `parser_config.enable_multimodal_image_retrieval` to `false`, and both image sidecar construction and chat-time image candidate recall check this switch before running.
+
+In practice:
+
+- `layout_recognize = "VLM"` enables VLM-assisted parsing and image asset export.
+- `enable_multimodal_image_retrieval = true` enables the extra image retrieval enhancement path that builds/uses the image sidecar index and returns `reference.image_candidates`, `reference.image_gate`, and `reference.image_render_plan`.
+- If this switch stays disabled, the system can still answer with the normal text RAG path, and VLM parsing can still export image assets, but online image recall/display planning will not run.
+
+To test the full multimodal workflow with online image recall:
 
 1. Create a knowledge base.
 2. Use the `naive` parser.
 3. Set `parser_config.layout_recognize = "VLM"`.
-4. Enable `parser_config.enable_multimodal_image_retrieval = true`.
+4. Enable image retrieval enhancement: `parser_config.enable_multimodal_image_retrieval = true`.
 5. Upload your own PDF or DOCX document.
 6. Wait until parsing finishes and check `image_assets/<doc_uid>/`.
 7. Ask image-related questions in chat and inspect `reference.image_candidates`, `reference.image_gate`, and `reference.image_render_plan`.
